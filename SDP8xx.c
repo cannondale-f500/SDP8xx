@@ -21,7 +21,20 @@
 
 #define SDP8X0_ADDR 0x26
 #define SDP8X1_ADDR 0x25
+#define CONT_MASSFLOW_AV 1
+#define CONT_MASSFLOW_N 2
+#define CONT_DIFFPRESS_AV 3
+#define CONT_DIFFPRESS_N 4
+#define CONT_STOP 5
+#define TRIG_MASSFLOW_N 6
+#define TRIG_MASSFLOW_ST 7
+#define TRIG_DIFFPRESS_N 8
+#define TRIG_DIFFPRESS_ST 9
+#define SLEEP 10
+#define PROD_ID 11
 
+int InitSDP8X0();
+int InitSDP8X1();
 
 uint8_t gencrc(uint8_t *data, size_t len)
 {
