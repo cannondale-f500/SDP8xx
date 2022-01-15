@@ -49,7 +49,7 @@ typedef enum {
 
 int InitSdp8xx(Sensor sensor);
 
-int Sdp8xx(Command cmd);
+int CmdSdp8xx(Command cmd);
 
 uint8_t gencrc(uint8_t *data, size_t len)
 {
@@ -92,13 +92,13 @@ int main()
 
 
 	//Stop Conversion if running
-	status=Sdp8xx(CONT_STOP);
+	status=CmdSdp8xx(CONT_STOP);
 
 	//Reset
-	status=Sdp8xx(SOFT_RESET);
+	status=CmdSdp8xx(SOFT_RESET);
 
         // Start Continuous Measurement Differential pressure Update rate 0.5ms Average
-	status=Sdp8xx(CONT_DP_AV);
+	status=CmdSdp8xx(CONT_DP_AV);
 	//Wait Minimum 8ms
         usleep(20000);
 	printf("\nStartMeasure %d ",status);
@@ -190,7 +190,7 @@ int main()
 }
 
 
-int Sdp8xx(Command cmd)
+int CmdSdp8xx(Command cmd)
 {
         int status;
 	//Write Upper 8 bits of the Command
