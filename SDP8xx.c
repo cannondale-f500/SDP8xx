@@ -16,25 +16,40 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <linux/i2c-dev.h>
+#include "sdp8xx.h"
 
 // Check I2C Devices with i2cdetect -y 1
 
 #define SDP8X0_ADDR 0x26
 #define SDP8X1_ADDR 0x25
-#define CONT_MASSFLOW_AV 1
-#define CONT_MASSFLOW_N 2
-#define CONT_DIFFPRESS_AV 3
-#define CONT_DIFFPRESS_N 4
-#define CONT_STOP 5
-#define TRIG_MASSFLOW_N 6
-#define TRIG_MASSFLOW_ST 7
-#define TRIG_DIFFPRESS_N 8
-#define TRIG_DIFFPRESS_ST 9
-#define SLEEP 10
-#define PROD_ID 11
 
-int InitSDP8X0();
-int InitSDP8X1();
+typedef enum {
+	SDP8X0 = 0x26,
+	SDP8X1 = 0x25
+} Sensor;
+
+static const float scaleFactorTemp = 200;
+
+typedef enum {
+	CONT_MF_AV =0x3603,
+	CONT_MF_N  =0x3608,
+	CONT_DP_AV =0x3615,
+	CONT_DP_N  =0x361E,
+	CONT_STOP  =0x3FF9,
+	TRIG_MF_N  =0x3624,
+	TRIG_MF_ST =0x3726,
+	TRIG_DP_N  =0x362F,
+	TRIG_DP_ST =0x372D,
+	SOFT_RESET =0x0006,
+	SLEEP      =0x3677,
+	EXIT_SLEEP =0x0000,
+	PRODUCT_ID =0x367CE102
+
+} Command;
+
+int InitSdp8xx(Sensor sensor);
+
+int Sdp8xx(Command cmd);
 
 uint8_t gencrc(uint8_t *data, size_t len)
 {
@@ -51,18 +66,16 @@ uint8_t gencrc(uint8_t *data, size_t len)
     }
     return crc;
 }
-int openI2C(void);
-int connectSDP8xx(int fd, uint8_t address);
-void softReset(int fd);
-int stopContMeas(int fd);
-int cmd(int fd, uint8_t cmd1, uint8_t cmd2);
-int productid(int fd);
-	
+
+int productid(void);
+
+int fd;                 //Device-Handle
+
+
 int main()
 {
 	int status;
 	int i;			//Counter
-  	int fd;                 //Device-Handle
 	int byteread;
 
   	uint8_t buf[18];        /* I/O buffer */
@@ -74,50 +87,19 @@ int main()
 
 	float DiffpressurePa1, DiffpressureBar1, TempC1;
 
-  	// open device on /dev/i2c-1
-	fd=openI2C();
+	status=InitSdp8xx(SDP8X1);
+//	status=InitSdp8xx(SDP8X0);
 
-  	// Connect to SDP8xx
-        if (ioctl(fd, I2C_SLAVE, SDP8X1_ADDR) < 0)
-        {
-                printf("\nError: Couldn't find device on address!\n");
-                return -2;
-        }
 
-//	printf("\nConnect: %d ",status);
+	//Stop Conversion if running
+	status=Sdp8xx(CONT_STOP);
 
-	status=productid(fd);
-	//Read Product Identifier
-/*        buf[0] = 0x36;
-        buf[1] = 0x7C;
-        status=write(fd, buf, 4);
-        buf[0] = 0xE1;
-        buf[1] = 0x02;
-        status=write(fd, buf, 2);
-
-        status=read(fd, buf, 18);
-        if (status != 18)
-        {
-        	perror("\nError Read Product Identifier");
-        	printf("\nNumber: %d",status);
-        	exit(-1);
-        }
-	//Print Product Identifier
-        printf("\nProduct Identifier: ");
-        for(i=0;i<status;i++)
-        {
-                printf("0x%02x ", buf[i]);
-        }*/
-
-	softReset(fd);
-
-        // Stop Continuous Measurement
-	status=stopContMeas(fd);
+	//Reset
+	status=Sdp8xx(SOFT_RESET);
 
         // Start Continuous Measurement Differential pressure Update rate 0.5ms Average
-        buf[0] = 0x36;
-        buf[1] = 0x15;
-        status=write(fd, buf, 2);
+	status=Sdp8xx(CONT_DP_AV);
+	//Wait Minimum 8ms
         usleep(20000);
 	printf("\nStartMeasure %d ",status);
 
@@ -208,60 +190,30 @@ int main()
 }
 
 
-int openI2C(void)
-{       int fd;
-        if ((fd = open("/dev/i2c-1", O_RDWR)) < 0)
-        {
-                printf("\nError: Couldn't open device! %d\n", fd);
-                return -1;
-        }
-
-        return fd;
-}
-
-int connectSDP8xx(int fd, uint8_t address)
+int Sdp8xx(Command cmd)
 {
-        if (ioctl(fd, I2C_SLAVE, address) < 0)
-        {
-                printf("\nError: Couldn't find device on address!\n");
-                return -2;
-        }
-
-        return 1;
-}
-
-void softReset(int fd)
-{
-        uint8_t buf[2];
         int status;
-        buf[0] = 0x00;
-        buf[1] = 0x06;
-        status=write(fd, buf, 2);
-        usleep(4000);
-}
+	//Write Upper 8 bits of the Command
+	printf("0x%02x ",(const void *)(cmd >> 8));
+	printf("0x%02x ",(const void *)(cmd & 0xFF));
+        status=write(fd, (const void *)(cmd >> 8), 1);
+	//Write Lower 8 bits of the Command
+        status=write(fd, (const void *)(cmd & 0xFF), 1);
+	//Sleep for Reset (Minimum 2ms)
+	if(cmd==SOFT_RESET)
+	{
+		printf("SOFT_RESET");
+        	usleep(2500);
+	}
 
-int stopContMeas(int fd)
-{
-        uint8_t buf[2];
-        int status;
-        buf[0] = 0x3F;
-        buf[1] = 0xF9;
-        status=write(fd, buf, 2);
         return status;
 }
 
-int cmd(int fd, uint8_t cmd1, uint8_t cmd2)
+int productid(void)
 {
-        uint8_t buf[2];
+        uint8_t buf[18];
         int status;
-        buf[0] = cmd1;
-        buf[1] = cmd2;
-        status=write(fd, buf, 2);
-        return status;
-}
-
-int productid(int fd)
-{
+	int i; //Zaehler
 	//Read Product Identifier
         buf[0] = 0x36;
         buf[1] = 0x7C;
@@ -278,13 +230,32 @@ int productid(int fd)
         	exit(-1);
         }
 	//Print Product Identifier
-/*        printf("\nProduct Identifier: ");
+        printf("\nProduct Identifier: ");
         for(i=0;i<status;i++)
         {
                 printf("0x%02x ", buf[i]);
-        }*/
+        }
 	return status;
 }
 
+
+
+int InitSdp8xx(Sensor sensor)
+{
+	// Open I2c
+        if ((fd = open("/dev/i2c-1", O_RDWR)) < 0)
+        {
+                printf("\nError: Couldn't open device! %d\n", fd);
+                return -1;
+        }
+	// Connect Device
+        if (ioctl(fd, I2C_SLAVE, sensor) < 0)
+        {
+                printf("\nError: Couldn't find device on address!\n");
+                return -2;
+        }
+
+        return 0;
+}
 
 
