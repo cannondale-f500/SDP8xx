@@ -51,6 +51,8 @@ int InitSdp8xx(Sensor sensor);
 
 int CmdSdp8xx(Command cmd);
 
+int ReadSdp8xx(int length, uint8_t* buf);
+
 uint8_t gencrc(uint8_t *data, size_t len)
 {
     uint8_t crc = 0xff;
@@ -101,25 +103,20 @@ int main()
 	status=CmdSdp8xx(CONT_DP_AV);
 	//Wait Minimum 8ms
         usleep(20000);
-	printf("\nStartMeasure %d ",status);
-
-        if (status != 2)
-        {
-		perror("\nWrite to register 1");
-                printf("\nNumber: %d",status);
-  //              exit(-1);
-        }
 
   	for (;;) // loop forever
-    	{
+    	{	
+		//Only read necessary data
 		if(Scalefactor1==0)
 		{	byteread=9;
 		}
 		else
 		{	byteread=6;
 		}
+
 		// Read conversion
-		status=read(fd, buf, byteread);
+		status=ReadSdp8xx(byteread, buf);
+
       		if (status != byteread)
         	{
         		perror("\nRead conversion");
@@ -209,19 +206,19 @@ int CmdSdp8xx(Command cmd)
         return status;
 }
 
-int ReadSdp8xx(uint8_t buf[18])
+int ReadSdp8xx(int length, uint8_t* buf)
 {
 	int status;
 	int i; //Zaehler
-	status=read(fd, buf, 18);
-        if (status != 18)
+	status=read(fd, buf, length);
+        if (status != length)
         {
-                perror("\nError Read Product Identifier");
+                perror("\nError Read Bytes");
                 printf("\nNumber: %d",status);
                 exit(-1);
         }
         //Print Product Identifier
-        printf("\nProduct Identifier: ");
+        printf("\nBytes Read: ");
         for(i=0;i<status;i++)
         {
                 printf("0x%02x ", buf[i]);
