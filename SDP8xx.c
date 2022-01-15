@@ -56,7 +56,8 @@ int connectSDP8xx(int fd, uint8_t address);
 void softReset(int fd);
 int stopContMeas(int fd);
 int cmd(int fd, uint8_t cmd1, uint8_t cmd2);
-
+int productid(int fd);
+	
 int main()
 {
 	int status;
@@ -85,8 +86,9 @@ int main()
 
 //	printf("\nConnect: %d ",status);
 
+	status=productid(fd);
 	//Read Product Identifier
-        buf[0] = 0x36;
+/*        buf[0] = 0x36;
         buf[1] = 0x7C;
         status=write(fd, buf, 4);
         buf[0] = 0xE1;
@@ -101,7 +103,7 @@ int main()
         	exit(-1);
         }
 	//Print Product Identifier
-/*        printf("\nProduct Identifier: ");
+        printf("\nProduct Identifier: ");
         for(i=0;i<status;i++)
         {
                 printf("0x%02x ", buf[i]);
@@ -257,4 +259,32 @@ int cmd(int fd, uint8_t cmd1, uint8_t cmd2)
         status=write(fd, buf, 2);
         return status;
 }
+
+int productid(int fd)
+{
+	//Read Product Identifier
+        buf[0] = 0x36;
+        buf[1] = 0x7C;
+        status=write(fd, buf, 4);
+        buf[0] = 0xE1;
+        buf[1] = 0x02;
+        status=write(fd, buf, 2);
+
+        status=read(fd, buf, 18);
+        if (status != 18)
+        {
+        	perror("\nError Read Product Identifier");
+        	printf("\nNumber: %d",status);
+        	exit(-1);
+        }
+	//Print Product Identifier
+/*        printf("\nProduct Identifier: ");
+        for(i=0;i<status;i++)
+        {
+                printf("0x%02x ", buf[i]);
+        }*/
+	return status;
+}
+
+
 
