@@ -1,3 +1,12 @@
+/**************************************************
+* SDP8xx
+* Description: This program is to communicate via I2C with the SDP8xx-Digital Sensor of Sensirion.
+* Both addresses should be readable.
+* First release: 15.01.2022
+* (C) by Thomas Schütz from Austria
+* compufter2@gmx.at
+**************************************************/
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
