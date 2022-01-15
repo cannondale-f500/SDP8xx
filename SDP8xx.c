@@ -209,6 +209,26 @@ int CmdSdp8xx(Command cmd)
         return status;
 }
 
+int ReadSdp8xx(uint8_t buf[18])
+{
+	int status;
+	int i; //Zaehler
+	status=read(fd, buf, 18);
+        if (status != 18)
+        {
+                perror("\nError Read Product Identifier");
+                printf("\nNumber: %d",status);
+                exit(-1);
+        }
+        //Print Product Identifier
+        printf("\nProduct Identifier: ");
+        for(i=0;i<status;i++)
+        {
+                printf("0x%02x ", buf[i]);
+        }
+	return status;
+}
+
 int productid(void)
 {
         uint8_t buf[18];
