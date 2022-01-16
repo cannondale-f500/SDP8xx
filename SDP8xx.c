@@ -8,6 +8,7 @@
 **************************************************/
 
 #include <stdio.h>
+#include <math.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -87,7 +88,9 @@ int main()
 	int16_t Diffpressure1, Temp1;
         uint16_t Scalefactor1=0;
 
-	float DiffpressurePa1, DiffpressureBar1, TempC1;
+	float DiffpressurePa1, DiffpressureBar1, TempC1,v1;
+        float DiffpressurePa2, DiffpressureBar2, TempC2,v2;
+        float vabs, angle;
 
 	status=InitSdp8xx(SDP8X1);
 //	status=InitSdp8xx(SDP8X0);
@@ -178,6 +181,12 @@ int main()
 		DiffpressureBar1=DiffpressurePa1*0.01;
 		printf("\n%f Pa %f mbar %f °C", DiffpressurePa1, DiffpressureBar1, TempC1);
 
+                //Calculation Wind speed
+                v1=sqrt((2*DiffpressurePa1)/1.3);//1.3kg/m³ Luftdichte
+                v2=sqrt((2*DiffpressurePa1)/1.3);
+                vabs=sqrt((v1*v1)+(v2+v2));
+                angle=atan(v1/v2)*180/3.1415926535;
+
 	        usleep(500000);
 
     	}
@@ -218,11 +227,11 @@ int ReadSdp8xx(int length, uint8_t* buf)
                 exit(-1);
         }
         //Print Product Identifier
-        printf("\nBytes Read: ");
+/*        printf("\nBytes Read: ");
         for(i=0;i<status;i++)
         {
                 printf("0x%02x ", buf[i]);
-        }
+        }*/
 	return status;
 }
 
