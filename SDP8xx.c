@@ -52,7 +52,9 @@ int InitSdp8xx(Sensor sensor);
 
 int CmdSdp8xx(Command cmd);
 
-int ReadSdp8xx(int length, uint8_t* buf);
+int ReadSdp8xx(uint8_t* buf, int length);
+
+int CRCSdp8xx(uint8_t buf[18],int length);
 
 uint8_t gencrc(uint8_t *data, size_t len)
 {
@@ -108,7 +110,7 @@ int main()
         usleep(20000);
 
   	for (;;) // loop forever
-    	{	
+    	{
 		//Only read necessary data
 		if(Scalefactor1==0)
 		{	byteread=9;
@@ -118,21 +120,7 @@ int main()
 		}
 
 		// Read conversion
-		status=ReadSdp8xx(byteread, buf);
-
-      		if (status != byteread)
-        	{
-        		perror("\nRead conversion");
-			printf("\nNumber: %d",status);
-        		exit(-1);
-        	}
-
-		//display Read Out
-/*	    	printf("\nRead Values: ");
-                for(i=0;i<status;i++)
-                {
-                        printf("0x%02x ", buf[i]);
-                }*/
+		status=ReadSdp8xx(buf, byteread);
 
                 for(i=0;i<3;i++)
 		{
@@ -215,7 +203,7 @@ int CmdSdp8xx(Command cmd)
         return status;
 }
 
-int ReadSdp8xx(int length, uint8_t* buf)
+int ReadSdp8xx(uint8_t* buf, int length)
 {
 	int status;
 	int i; //Zaehler
@@ -232,6 +220,16 @@ int ReadSdp8xx(int length, uint8_t* buf)
         {
                 printf("0x%02x ", buf[i]);
         }*/
+        //CRC Check Differential Pressure
+	status=CRCSdp8xx(buf, length);
+
+	return status;
+}
+
+int CRCSdp8xx(uint8_t buf[18],int length)
+{
+	int status;
+	
 	return status;
 }
 
